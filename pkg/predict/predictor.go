@@ -163,6 +163,43 @@ func (p *Predictor) Predict(inputs Inputs) (*Response, error) {
 	return prediction, nil
 }
 
+func (p *Predictor) PredictJSON(body []byte) (*Response, error) {
+
+	url := fmt.Sprintf("http://localhost:%d/predictions", p.port)
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create HTTP request to %s: %w", url, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Close = true
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to POST HTTP request to %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		errorResponse := &ValidationErrorResponse{}
+		if err := json.NewDecoder(resp.Body).Decode(errorResponse); err != nil {
+			return nil, fmt.Errorf("/predictions call returned status 422, and the response body failed to decode: %w", err)
+		}
+
+		return nil, buildInputValidationErrorMessage(errorResponse)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("/predictions call returned status %d", resp.StatusCode)
+	}
+
+	prediction := &Response{}
+	if err = json.NewDecoder(resp.Body).Decode(prediction); err != nil {
+		return nil, fmt.Errorf("Failed to decode prediction response: %w", err)
+	}
+	return prediction, nil
+}
+
 func (p *Predictor) GetSchema() (*openapi3.T, error) {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/openapi.json", p.port))
 	if err != nil {

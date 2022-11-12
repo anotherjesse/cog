@@ -7,6 +7,7 @@ require (
 	github.com/docker/cli v20.10.17+incompatible
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/getkin/kin-openapi v0.98.0
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/golangci/golangci-lint v1.50.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/mattn/go-isatty v0.0.16
