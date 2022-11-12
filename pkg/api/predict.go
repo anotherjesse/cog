@@ -57,8 +57,7 @@ func (s *Server) predictAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageName := v.imageName
-	if err := s.e.LoadVersion(imageName, req.VersionID); err != nil {
+	if err := s.e.LoadVersion(v.imageName(), req.VersionID); err != nil {
 		console.Warnf("unable to load version: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

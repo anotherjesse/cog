@@ -23,6 +23,7 @@ func Serve(listen string) error {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Get("/v1/models/{userName}/{modelName}/versions/{versionId}", s.modelOpenAPISpec)
+	r.Get("/v1/models/{userName}/{modelName}/versions", s.modelVersions)
 	r.Post("/v1/predictions", s.predictAPI)
 	r.Get("/v1/predictions/{id}", s.getPredictions)
 
