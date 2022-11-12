@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-	"log"
 	"os"
 
 	"github.com/replicate/cog/pkg/docker"
@@ -40,18 +38,18 @@ func (e *Engine) GetVersion(versionID string) *Version {
 
 func (e *Engine) Predict(body []byte) {
 	if e.p == nil {
-		fmt.Println("No model loaded")
+		console.Info("No model loaded")
 		return
 	}
 
 	if e.result == nil {
-		fmt.Println("No result")
+		console.Infof("No result")
 		return
 	}
 
 	response, err := e.p.PredictJSON(body)
 	if err != nil {
-		log.Println("error predicting", err)
+		console.Warnf("error predicting: %s", err)
 		e.result.Status = "failed"
 		return
 	}
@@ -83,12 +81,14 @@ func (e *Engine) LoadVersion(imageName string, version string) error {
 	}
 
 	if e.p != nil {
+		console.Infof("Stopping container for model version %s", e.version)
 		if err := e.p.Stop(); err != nil {
 			console.Warnf("Failed to stop container: %s", err)
 		}
 	}
 
-	fmt.Println("predictor: loading version", version)
+	console.Infof("Loading model version %s", version)
+
 	p := predict.NewPredictor(docker.RunOptions{
 		GPUs:    gpus,
 		Image:   imageName,
@@ -102,7 +102,7 @@ func (e *Engine) LoadVersion(imageName string, version string) error {
 	e.p = &p
 	e.version = version
 
-	fmt.Println("predictor: ready version", version)
+	console.Infof("Ready model version %s", version)
 
 	return nil
 }

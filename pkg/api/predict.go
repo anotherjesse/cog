@@ -13,7 +13,6 @@ import (
 	"github.com/replicate/cog/pkg/util/console"
 )
 
-// json schema for request body
 type Request struct {
 	Input     Inputs `json:"input"`
 	VersionID string `json:"version"`
@@ -37,26 +36,30 @@ func ensureImageExists(imageName string) error {
 
 func (s *Server) predictAPI(w http.ResponseWriter, r *http.Request) {
 	var req Request
-	body, _ := ioutil.ReadAll(r.Body)
-	fmt.Println("body", string(body))
 
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		console.Warnf("unable to read request body: %s", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	if err := json.Unmarshal(body, &req); err != nil {
+		console.Warnf("unable to parse request body: %s", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	v := s.e.GetVersion(req.VersionID)
-	fmt.Println("input", req.Input)
 	if v == nil {
-		fmt.Println("version not found", req.VersionID)
-		fmt.Println("this is only populated if the openapi spec is requested :(")
+		console.Warnf("version not found: %s", req.VersionID)
+		console.Warnf("this is only populated if the openapi spec is requested :(")
 		http.Error(w, "version not found", http.StatusNotFound)
 		return
 	}
-	imageName := v.imageName
 
+	imageName := v.imageName
 	if err := s.e.LoadVersion(imageName, req.VersionID); err != nil {
-		fmt.Print("error loading version", err)
+		console.Warnf("unable to load version: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -99,10 +102,6 @@ type Response struct {
 type URLs struct {
 	Get    string `json:"get"`
 	Cancel string `json:"cancel"`
-}
-
-type Output struct {
-	Text string `json:"text"`
 }
 
 func (s *Server) getPredictions(w http.ResponseWriter, r *http.Request) {
