@@ -17,7 +17,7 @@ func NewServer() Server {
 	}
 }
 
-func Serve() error {
+func Serve(listen string) error {
 	s := NewServer()
 
 	r := chi.NewRouter()
@@ -26,5 +26,5 @@ func Serve() error {
 	r.Post("/v1/predictions", s.predictAPI)
 	r.Get("/v1/predictions/{id}", s.getPredictions)
 
-	return http.ListenAndServe(":5555", r)
+	return http.ListenAndServe(listen, r)
 }

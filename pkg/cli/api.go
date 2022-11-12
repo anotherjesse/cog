@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/replicate/cog/pkg/api"
 	"github.com/replicate/cog/pkg/util/console"
 	"github.com/spf13/cobra"
@@ -16,11 +18,21 @@ func newAPICommand() *cobra.Command {
 		Args: cobra.MaximumNArgs(0),
 	}
 
+	cmd.Flags().IntVarP(&listenPort, "port", "p", 5555, "port to serve api on the host")
+	cmd.Flags().StringVarP(&listenHost, "listen", "l", "127.0.0.1", "ip to listen for api")
+
 	return cmd
 }
 
-func apiCommand(args []string) error {
-	console.Infof("\nListening for replicate API...\n")
+var listenPort int
+var listenHost string
 
-	return api.Serve()
+func apiCommand(args []string) error {
+
+	listen := fmt.Sprintf("%s:%d", listenHost, listenPort)
+
+	console.Infof("Starting replicate API...")
+	console.Infof(" -- listening on http://%s ", listen)
+
+	return api.Serve(listen)
 }
