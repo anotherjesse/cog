@@ -6,11 +6,12 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/replicate/cog/pkg/util/console"
 )
 
-func replicate(authorization string, path string) (string, error) {
+func replicateRequest(authorization string, path string) (string, error) {
 	url := "https://api.replicate.com" + path
-	// create a new request to replicate using Authorization header
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -43,7 +44,7 @@ func (s *Server) modelOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 
 	versionID := chi.URLParam(r, "versionId")
 
-	if s.e.HasVersion(versionID) == false {
+	if !s.e.HasVersion(versionID) {
 		authorization := r.Header.Get("Authorization")
 		path := r.URL.Path
 
@@ -52,9 +53,10 @@ func (s *Server) modelOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 
 		imageName := fmt.Sprintf("%s/%s/%s@sha256:%s", "r8.im", userName, modelName, versionID)
 
-		spec, err := replicate(authorization, path)
+		console.Infof("getting openapi spec from replicate: %s", path)
+		spec, err := replicateRequest(authorization, path)
 		if err != nil {
-			fmt.Println("error getting spec", path)
+			console.Warnf("unable to get openapi spec from replicate: %s", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
