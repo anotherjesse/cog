@@ -13,7 +13,6 @@ type Engine struct {
 	version   string
 	versionDB map[string]Version
 	p         *predict.Predictor
-	result    *Response
 }
 
 func NewEngine() *Engine {
@@ -36,26 +35,25 @@ func (e *Engine) GetVersion(versionID string) *Version {
 	return nil
 }
 
-func (e *Engine) Predict(body []byte) {
+func (e *Engine) Predict(body []byte, r *Response) {
 	if e.p == nil {
 		console.Info("No model loaded")
 		return
 	}
 
-	if e.result == nil {
-		console.Infof("No result")
-		return
-	}
-
-	response, err := e.p.PredictJSON(body)
+	prediction, err := e.p.PredictJSON(body)
 	if err != nil {
 		console.Warnf("error predicting: %s", err)
-		e.result.Status = "failed"
+		r.Status = "failed"
+		r.Save()
 		return
 	}
 
-	e.result.Output = response.Output
-	e.result.Status = "succeeded"
+	r.Status = "succeeded"
+	r.Output = prediction.Output
+	if r.Save() != nil {
+		console.Warnf("error saving prediction: %s", err)
+	}
 }
 
 func (e *Engine) LoadVersion(imageName string, version string) error {

@@ -65,7 +65,7 @@ func (s *Server) predictAPI(w http.ResponseWriter, r *http.Request) {
 
 	id := fmt.Sprintf("%d", rand.Int63())
 
-	s.e.result = &Response{
+	response := &Response{
 		ID:        id,
 		Version:   req.VersionID,
 		Input:     req.Input,
@@ -75,47 +75,27 @@ func (s *Server) predictAPI(w http.ResponseWriter, r *http.Request) {
 		Status:    "starting",
 	}
 
-	go s.e.Predict(body)
+	go s.e.Predict(body, response)
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(s.e.result); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-type Response struct {
-	ID          string       `json:"id"`
-	Version     string       `json:"version"`
-	URLs        URLs         `json:"urls"`
-	CreatedAt   string       `json:"created_at"`
-	CompletedAt string       `json:"completed_at"`
-	Source      string       `json:"source"`
-	Status      string       `json:"status"`
-	Input       Inputs       `json:"input"`
-	Output      *interface{} `json:"output"`
-	Error       string       `json:"error"`
-	Logs        string       `json:"logs"`
-}
-
-type URLs struct {
-	Get    string `json:"get"`
-	Cancel string `json:"cancel"`
-}
-
 func (s *Server) getPredictions(w http.ResponseWriter, r *http.Request) {
-	if s.e.result == nil {
-		http.Error(w, "No result", http.StatusNotFound)
-		return
-	}
 
-	if s.e.result.ID != chi.URLParam(r, "id") {
-		http.Error(w, "No result", http.StatusNotFound)
-		return
+	id := chi.URLParam(r, "id")
+
+	response, err := Load(id)
+	if err != nil {
+		console.Warnf("unable to load prediction: %s", err)
+		http.Error(w, "not found", http.StatusNotFound)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(s.e.result); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
