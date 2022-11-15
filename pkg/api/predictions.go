@@ -35,7 +35,12 @@ func (r *Response) Save() error {
 	return ioutil.WriteFile(filename, content, 0o644)
 }
 
-func Load(id string) (*Response, error) {
+func (r *Response) SavePredictionInput(body []byte) error {
+	filename := fmt.Sprintf("predictions/%s.input.json", r.ID)
+	return ioutil.WriteFile(filename, body, 0o644)
+}
+
+func LoadPrediction(id string) (*Response, error) {
 	filename := fmt.Sprintf("predictions/%s.json", id)
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -50,4 +55,14 @@ func Load(id string) (*Response, error) {
 	}
 
 	return &r, nil
+}
+
+func LoadPredictionInput(id string) ([]byte, error) {
+	filename := fmt.Sprintf("predictions/%s.input.json", id)
+	body, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read response file: %w", err)
+	}
+
+	return body, nil
 }

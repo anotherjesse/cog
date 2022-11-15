@@ -8,7 +8,8 @@ import (
 )
 
 type Server struct {
-	e *Engine
+	e     *Engine
+	queue chan string
 }
 
 func NewServer() Server {
@@ -26,6 +27,9 @@ func Serve(listen string) error {
 	r.Get("/v1/models/{userName}/{modelName}/versions", s.modelVersions)
 	r.Post("/v1/predictions", s.predictAPI)
 	r.Get("/v1/predictions/{id}", s.getPredictions)
+
+	s.queue = make(chan string, 100)
+	go s.e.Run(s.queue)
 
 	return http.ListenAndServe(listen, r)
 }

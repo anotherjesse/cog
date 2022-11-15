@@ -49,20 +49,6 @@ func (s *Server) predictAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v := s.e.GetVersion(req.VersionID)
-	if v == nil {
-		console.Warnf("version not found: %s", req.VersionID)
-		console.Warnf("this is only populated if the openapi spec is requested :(")
-		http.Error(w, "version not found", http.StatusNotFound)
-		return
-	}
-
-	if err := s.e.LoadVersion(v.imageName(), req.VersionID); err != nil {
-		console.Warnf("unable to load version: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	id := fmt.Sprintf("%d", rand.Int63())
 
 	response := &Response{
@@ -75,7 +61,19 @@ func (s *Server) predictAPI(w http.ResponseWriter, r *http.Request) {
 		Status:    "starting",
 	}
 
-	go s.e.Predict(body, response)
+	if err := response.Save(); err != nil {
+		console.Warnf("unable to save response: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := response.SavePredictionInput(body); err != nil {
+		console.Warnf("unable to save prediction input: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.queue <- id
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -88,7 +86,7 @@ func (s *Server) getPredictions(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	response, err := Load(id)
+	response, err := LoadPrediction(id)
 	if err != nil {
 		console.Warnf("unable to load prediction: %s", err)
 		http.Error(w, "not found", http.StatusNotFound)
